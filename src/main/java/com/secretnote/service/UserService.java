@@ -1,8 +1,8 @@
 package com.secretnote.service;
 
-import com.secretnote.dto.AuthenticationRequest;
-import com.secretnote.dto.AuthenticationResponse;
-import com.secretnote.dto.RegisterRequest;
+import com.secretnote.dto.requests.AuthenticationRequest;
+import com.secretnote.dto.response.AuthenticationResponse;
+import com.secretnote.dto.requests.RegisterRequest;
 import com.secretnote.entity.User;
 import com.secretnote.enums.Role;
 import com.secretnote.repository.UserRepository;
