@@ -1,9 +1,9 @@
 package com.secretnote.controller;
 
 
-import com.secretnote.dto.AuthenticationRequest;
-import com.secretnote.dto.AuthenticationResponse;
-import com.secretnote.dto.RegisterRequest;
+import com.secretnote.dto.requests.AuthenticationRequest;
+import com.secretnote.dto.response.AuthenticationResponse;
+import com.secretnote.dto.requests.RegisterRequest;
 import com.secretnote.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

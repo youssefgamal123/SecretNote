@@ -1,4 +1,4 @@
-package com.secretnote.dto;
+package com.secretnote.dto.response;
 
 
 import lombok.Builder;
