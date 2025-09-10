@@ -8,27 +8,11 @@ import org.springframework.http.HttpStatus;
 
 @Setter
 @Getter
-public class APIExceptionResponse extends RuntimeException  {
+@AllArgsConstructor
+public class APIExceptionResponse {
 
     private String message;
     private  HttpStatus  status;
-
-
-
-    public APIExceptionResponse(String message) {
-        super(message);
-        this.status = HttpStatus.BAD_REQUEST;
-    }
-
-    public APIExceptionResponse(String message, HttpStatus status) {
-        super(message);
-        this.status = status;
-    }
-
-    public APIExceptionResponse(String message, HttpStatus status, Throwable cause) {
-        super(message, cause);
-        this.status = status;
-    }
 
 
 }
