@@ -12,6 +12,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
 
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<APIExceptionResponse> handleApiException(ApiException ex) {
+        return new ResponseEntity<>(
+                new APIExceptionResponse(ex.getMessage(), ex.getStatus()),
+                ex.getStatus()
+        );
+    }
+
 
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<APIExceptionResponse> handleUsernameNotFound(UsernameNotFoundException ex) {
