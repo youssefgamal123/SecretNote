@@ -6,12 +6,13 @@ import com.secretnote.dto.requests.NoteUpdateRequest;
 import com.secretnote.dto.response.NoteResponse;
 import com.secretnote.entity.Note;
 import com.secretnote.entity.User;
+import com.secretnote.exception.ApiException;
 import com.secretnote.repository.NoteRepository;
 import com.secretnote.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -33,12 +34,12 @@ public class NoteService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null) {
-            throw new UsernameNotFoundException("User is not Authenticated , Please Login");
+            throw new ApiException("User is not authenticated, please login", HttpStatus.UNAUTHORIZED);
         }
 
 
         String email = authentication.getName();
-        return userRepository.findByEmail(email).orElseThrow(  () -> new UsernameNotFoundException("User not found") );
+        return userRepository.findByEmail(email).orElseThrow(  () -> new ApiException("User not found", HttpStatus.NOT_FOUND) );
 
 
     }
@@ -87,16 +88,16 @@ public class NoteService {
         User currentUser = getCurrentUser();
 
         Note note = noteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Note not found"));
-
+                .orElseThrow(() -> new ApiException("Note not found", HttpStatus.NOT_FOUND));
         if (!note.getUser().equals(currentUser)) {
-            throw new RuntimeException("Access denied");
+            throw new ApiException("Access denied", HttpStatus.FORBIDDEN);
         }
 
         if (note.isSelfDestructive()) {
             if (note.getExpiresAt() != null && LocalDateTime.now().isAfter(note.getExpiresAt())) {
                 noteRepository.delete(note);
-                throw new RuntimeException("This self-destructive note has already expired and was deleted.");
+                throw new ApiException("This self-destructive note has already expired and was deleted.",
+                        HttpStatus.GONE);
             }
 
 
@@ -112,10 +113,10 @@ public class NoteService {
         User currentUser = getCurrentUser();
 
         Note note = noteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Note not found"));
+                .orElseThrow(() ->new ApiException("Note not found", HttpStatus.NOT_FOUND));
 
         if (!note.getUser().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not allowed to modify this note");
+            throw new ApiException("You are not allowed to modify this note", HttpStatus.FORBIDDEN);
         }
 
         note.setTitle(request.getTitle());
@@ -132,10 +133,11 @@ public class NoteService {
         User currentUser = getCurrentUser();
 
         Note note = noteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Note not found"));
+                .orElseThrow(() -> new ApiException("Note not found", HttpStatus.NOT_FOUND));
+
 
         if (!note.getUser().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not allowed to delete this note");
+            throw new ApiException("You are not allowed to delete this note", HttpStatus.FORBIDDEN);
         }
 
         noteRepository.delete(note);
