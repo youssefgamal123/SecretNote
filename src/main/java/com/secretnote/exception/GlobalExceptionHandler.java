@@ -49,27 +49,6 @@ public class GlobalExceptionHandler {
 
 
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<APIExceptionResponse> handleRuntimeException(RuntimeException ex) {
-        APIExceptionResponse response = new APIExceptionResponse(
-                ex.getMessage(),
-                HttpStatus.BAD_REQUEST
-        );
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-
-
-
-
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<APIExceptionResponse> handleIllegalArgument(IllegalArgumentException ex) {
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(new APIExceptionResponse(ex.getMessage(), HttpStatus.BAD_REQUEST));
-    }
-
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<APIExceptionResponse> handleGeneralException(Exception ex) {
         APIExceptionResponse response = new APIExceptionResponse(
@@ -79,17 +58,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    class NoteNotFoundException extends RuntimeException {
-        public NoteNotFoundException(String message) {
-            super(message);
-        }
-    }
 
-    class SelfDestructiveNoteExpiredException extends RuntimeException {
-        public SelfDestructiveNoteExpiredException(String message) {
-            super(message);
-        }
-    }
 
 
 
