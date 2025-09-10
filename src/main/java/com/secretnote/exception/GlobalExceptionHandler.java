@@ -71,6 +71,18 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    class NoteNotFoundException extends RuntimeException {
+        public NoteNotFoundException(String message) {
+            super(message);
+        }
+    }
+
+    class SelfDestructiveNoteExpiredException extends RuntimeException {
+        public SelfDestructiveNoteExpiredException(String message) {
+            super(message);
+        }
+    }
+
 
 
 }
