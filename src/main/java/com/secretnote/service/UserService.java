@@ -5,13 +5,15 @@ import com.secretnote.dto.response.AuthenticationResponse;
 import com.secretnote.dto.requests.RegisterRequest;
 import com.secretnote.entity.User;
 import com.secretnote.enums.Role;
+import com.secretnote.exception.ApiException;
 import com.secretnote.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +33,7 @@ public class UserService {
     @Transactional
     public AuthenticationResponse register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("User with email " + request.getEmail() + " already exists");
+            throw new ApiException("User with email " + request.getEmail() + " already exists", HttpStatus.CONFLICT);
         }
 
         User user = User.builder()
@@ -64,16 +66,20 @@ public class UserService {
 
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+        } catch (BadCredentialsException e) {
+            throw new ApiException("Invalid email or password", HttpStatus.UNAUTHORIZED);
+        }
+
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
+                .orElseThrow(() -> new ApiException("User not found", HttpStatus.NOT_FOUND));
 
         UserDetails userDetails =
                 new org.springframework.security.core.userdetails.User(
@@ -84,7 +90,6 @@ public class UserService {
                                 .toList()
                 );
 
-        // Generate token with UserDetails
         String jwtToken = jwtService.generateToken(userDetails);
 
         return AuthenticationResponse.builder()
