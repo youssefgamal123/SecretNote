@@ -41,7 +41,7 @@ jobs:
     steps:
       # 1. Identify the exact image created by the CI run.
       - name: Prepare image tag
-        shell: pwsh
+        shell: powershell
         run: |
           $commitSha = "${{ github.event.workflow_run.head_sha }}"
           $shortSha = $commitSha.Substring(0, 7)
@@ -55,7 +55,7 @@ jobs:
 
       # 2. Verify Minikube and Kubernetes connectivity.
       - name: Verify Kubernetes connection
-        shell: pwsh
+        shell: powershell
         run: |
           kubectl config use-context minikube
 
@@ -78,7 +78,7 @@ jobs:
       # 3. Update the backend Deployment.
       - name: Deploy new image
         id: deploy
-        shell: pwsh
+        shell: powershell
         run: |
           kubectl set image `
             deployment/$env:DEPLOYMENT `
@@ -91,7 +91,7 @@ jobs:
 
       # 4. Wait for Kubernetes to finish the rollout.
       - name: Verify deployment rollout
-        shell: pwsh
+        shell: powershell
         run: |
           kubectl rollout status `
             deployment/$env:DEPLOYMENT `
@@ -105,7 +105,7 @@ jobs:
       # 5. If the rollout fails, restore the previous revision.
       - name: Roll back failed deployment
         if: failure() && steps.deploy.outcome == 'success'
-        shell: pwsh
+        shell: powershell
         run: |
           Write-Host "Deployment failed. Attempting rollback..."
 
@@ -129,7 +129,7 @@ jobs:
       # 6. Display the final state.
       - name: Deployment summary
         if: success()
-        shell: pwsh
+        shell: powershell
         run: |
           Write-Host "SecretNote deployed successfully!"
           Write-Host "Image: $env:FULL_IMAGE"
