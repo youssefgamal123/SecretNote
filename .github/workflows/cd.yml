@@ -1,0 +1,138 @@
+
+name: SecretNote CD
+
+on:
+  workflow_run:
+    workflows:
+      - SecretNote CI
+    types:
+      - completed
+    branches:
+      - main
+
+# Only grant the permissions this workflow needs.
+permissions:
+  contents: read
+
+# Avoid overlapping deployments.
+concurrency:
+  group: secretnote-minikube-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Minikube
+    runs-on: [self-hosted, Windows, X64, secretnote-deployer]
+
+    # Deploy only after successful CI caused by a push to main.
+    # Also verify the source repository is this repository.
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+
+    env:
+      NAMESPACE: secretnote
+      DEPLOYMENT: secretnote-backend
+      CONTAINER: secretnote-backend
+      IMAGE: ghcr.io/youssefgamal123/secretnote
+
+    steps:
+      # 1. Identify the exact image created by the CI run.
+      - name: Prepare image tag
+        shell: pwsh
+        run: |
+          $commitSha = "${{ github.event.workflow_run.head_sha }}"
+          $shortSha = $commitSha.Substring(0, 7)
+          $imageTag = "sha-$shortSha"
+
+          "IMAGE_TAG=$imageTag" >> $env:GITHUB_ENV
+          "FULL_IMAGE=$env:IMAGE`:$imageTag" >> $env:GITHUB_ENV
+
+          Write-Host "Commit: $commitSha"
+          Write-Host "Image: $env:IMAGE`:$imageTag"
+
+      # 2. Verify Minikube and Kubernetes connectivity.
+      - name: Verify Kubernetes connection
+        shell: pwsh
+        run: |
+          kubectl config use-context minikube
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not select Minikube context."
+          }
+
+          kubectl get nodes
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Cannot connect to Kubernetes."
+          }
+
+          kubectl get pods -n $env:NAMESPACE
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Cannot inspect SecretNote namespace."
+          }
+
+      # 3. Update the backend Deployment.
+      - name: Deploy new image
+        id: deploy
+        shell: pwsh
+        run: |
+          kubectl set image `
+            deployment/$env:DEPLOYMENT `
+            $env:CONTAINER=$env:FULL_IMAGE `
+            -n $env:NAMESPACE
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to update the Deployment image."
+          }
+
+      # 4. Wait for Kubernetes to finish the rollout.
+      - name: Verify deployment rollout
+        shell: pwsh
+        run: |
+          kubectl rollout status `
+            deployment/$env:DEPLOYMENT `
+            -n $env:NAMESPACE `
+            --timeout=180s
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Deployment rollout failed."
+          }
+
+      # 5. If the rollout fails, restore the previous revision.
+      - name: Roll back failed deployment
+        if: failure() && steps.deploy.outcome == 'success'
+        shell: pwsh
+        run: |
+          Write-Host "Deployment failed. Attempting rollback..."
+
+          kubectl rollout undo `
+            deployment/$env:DEPLOYMENT `
+            -n $env:NAMESPACE
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Automatic rollback failed."
+          }
+
+          kubectl rollout status `
+            deployment/$env:DEPLOYMENT `
+            -n $env:NAMESPACE `
+            --timeout=180s
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Rollback rollout could not be verified."
+          }
+
+      # 6. Display the final state.
+      - name: Deployment summary
+        if: success()
+        shell: pwsh
+        run: |
+          Write-Host "SecretNote deployed successfully!"
+          Write-Host "Image: $env:FULL_IMAGE"
+
+          kubectl get pods -n $env:NAMESPACE
+          kubectl get deployment $env:DEPLOYMENT -n $env:NAMESPACE
