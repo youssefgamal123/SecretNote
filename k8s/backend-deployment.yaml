@@ -1,0 +1,66 @@
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: secretnote-backend
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: secretnote-backend
+
+  template:
+    metadata:
+      labels:
+        app: secretnote-backend
+
+    spec:
+      containers:
+        - name: secretnote-backend
+          image: secretnote:1.1
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8080
+
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: secretnote-config
+                  key: SPRING_DATASOURCE_URL
+
+            - name: SERVER_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: secretnote-config
+                  key: SERVER_PORT
+
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: secretnote-db-secret
+                  key: POSTGRES_USER
+
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secretnote-db-secret
+                  key: POSTGRES_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: secretnote-jwt-secret
+                  key: JWT_SECRET
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
